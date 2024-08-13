@@ -21,10 +21,6 @@ module.exports = ({ DataTypes }) => {
         type: DataTypes.TEXT,
         comment: '描述'
       },
-      status: {
-        type: DataTypes.INTEGER,
-        comment: '0:正常,10:关闭'
-      },
       objectGroupCode: {
         type: DataTypes.STRING,
         allowNull: false
@@ -40,7 +36,7 @@ module.exports = ({ DataTypes }) => {
       indexed: [
         {
           unique: true,
-          fields: ['code', 'object_group_code']
+          fields: ['code', 'object_group_code', 'delete_at']
         }
       ]
     }

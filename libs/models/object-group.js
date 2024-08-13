@@ -15,6 +15,10 @@ module.exports = ({ DataTypes }) => {
       description: {
         type: DataTypes.TEXT,
         comment: '描述'
+      },
+      status: {
+        type: DataTypes.INTEGER,
+        comment: '0:正常,10:关闭'
       }
     },
     associate: ({ objectGroup, objectModel }) => {
