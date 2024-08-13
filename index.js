@@ -3,7 +3,7 @@ const merge = require('lodash/merge');
 const packageJson = require('./package.json');
 const path = require('path');
 
-const version = `v${packageJson.version.split('.')}`;
+const version = `v${packageJson.version.split('.')[0]}`;
 
 module.exports = fp(
   async (fastify, options) => {
