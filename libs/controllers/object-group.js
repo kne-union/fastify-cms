@@ -10,12 +10,14 @@ module.exports = fp(async (fastify, options) => {
         tags: ['对象模型'],
         summary: '获取对象集合列表',
         query: {
-          perPage: { type: 'number' },
-          currentPage: { type: 'number' }
+          type: 'object',
+          properties: {
+            perPage: { type: 'number' },
+            currentPage: { type: 'number' }
+          }
         },
         response: {
           200: {
-            description: '返回值说明',
             content: {
               'application/json': {
                 schema: {
@@ -45,6 +47,45 @@ module.exports = fp(async (fastify, options) => {
     },
     async request => {
       return await services.objectGroup.getList(merge({ perPage: 20, currentPage: 1 }, request.query));
+    }
+  );
+
+  fastify.get(
+    `${options.prefix}/group/getDetailByCode`,
+    {
+      onRequest: options.createAuthenticate('group:read'),
+      schema: {
+        tags: ['对象模型'],
+        summary: '以code获取对象集合',
+        query: {
+          type: 'object',
+          required: ['code'],
+          properties: {
+            code: { type: 'string' }
+          }
+        },
+        response: {
+          200: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number' },
+                    code: { type: 'string' },
+                    name: { type: 'string' },
+                    status: { type: 'number' },
+                    description: { type: 'string' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    async request => {
+      return await services.objectGroup.getDetailByCode({ code: request.query.code });
     }
   );
 

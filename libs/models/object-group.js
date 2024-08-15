@@ -24,7 +24,8 @@ module.exports = ({ DataTypes }) => {
     associate: ({ objectGroup, objectModel }) => {
       objectGroup.hasMany(objectModel, {
         sourceKey: 'code',
-        foreignKey: 'objectModalCode'
+        foreignKey: 'objectGroupCode',
+        constraints: false
       });
     },
     options: {

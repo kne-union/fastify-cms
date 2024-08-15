@@ -34,7 +34,8 @@ module.exports = ({ DataTypes }) => {
     associate: ({ objectContent, objectModel }) => {
       objectContent.belongsTo(objectModel, {
         targetKey: 'code',
-        foreignKey: 'modelType'
+        foreignKey: 'modelType',
+        constraints: false
       });
     },
     options: {
@@ -43,7 +44,10 @@ module.exports = ({ DataTypes }) => {
           return {
             fields: [indexName]
           };
-        })
+        }),
+        {
+          fields: ['model_type']
+        }
       ]
     }
   };

@@ -26,10 +26,16 @@ module.exports = ({ DataTypes }) => {
         allowNull: false
       }
     },
-    associate: ({ objectModel, objectField }) => {
+    associate: ({ objectModel, objectGroup, objectField }) => {
+      objectModel.belongsTo(objectGroup, {
+        targetKey: 'code',
+        foreignKey: 'objectGroupCode',
+        constraints: false
+      });
       objectModel.hasMany(objectField, {
         sourceKey: 'code',
-        foreignKey: 'objectModelCode'
+        foreignKey: 'objectModelCode',
+        constraints: false
       });
     },
     options: {
@@ -37,6 +43,9 @@ module.exports = ({ DataTypes }) => {
         {
           unique: true,
           fields: ['code', 'object_group_code', 'delete_at']
+        },
+        {
+          fields: ['object_group_code']
         }
       ]
     }

@@ -12,15 +12,28 @@ module.exports = ({ DataTypes }) => {
         allowNull: false,
         comment: '唯一标识，默认为UUIDV4自动生成'
       },
-      path: {
+      fieldName: {
         type: DataTypes.STRING,
         allowNull: false,
-        comment: '数据路径'
+        comment: '表单字段name'
       },
       name: {
         type: DataTypes.STRING,
-        comment: '名称',
+        comment: '名称，作为表单字段label',
         allowNull: false
+      },
+      rule: {
+        type: DataTypes.STRING,
+        comment: '表单验证规则作为表单字段rule'
+      },
+      index: {
+        type: DataTypes.INTEGER,
+        comment: '字段排序'
+      },
+      parentCode: {
+        type: DataTypes.STRING,
+        defaultValue: '',
+        comment: '默认为空，可以关联当前对象的其他字段code'
       },
       description: {
         type: DataTypes.TEXT,
@@ -44,7 +57,7 @@ module.exports = ({ DataTypes }) => {
         type: DataTypes.STRING,
         allowNull: false
       },
-      isIndex: {
+      isIndexed: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         comment: '该字段是否为索引字段'
@@ -53,7 +66,8 @@ module.exports = ({ DataTypes }) => {
     associate: ({ objectModel, objectField }) => {
       objectField.belongsTo(objectModel, {
         targetKey: 'code',
-        foreignKey: 'objectModelCode'
+        foreignKey: 'objectModelCode',
+        constraints: false
       });
     },
     options: {
@@ -61,6 +75,12 @@ module.exports = ({ DataTypes }) => {
         {
           unique: true,
           fields: ['code', 'object_model_code']
+        },
+        {
+          fields: ['object_model_code']
+        },
+        {
+          fields: ['parent_code']
         }
       ]
     }

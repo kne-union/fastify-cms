@@ -18,6 +18,12 @@ module.exports = fp(async (fastify, options) => {
     };
   };
 
+  const getDetailByCode = async ({ code }) => {
+    return await models.objectGroup.findOne({
+      where: { code }
+    });
+  };
+
   const add = async info => {
     const target = {};
     ['code', 'name', 'description'].forEach(name => {
@@ -82,5 +88,5 @@ module.exports = fp(async (fastify, options) => {
     await objectGroup.destroy();
   };
 
-  fastify.cms.services.objectGroup = { getList, add, save, close, open, remove };
+  fastify.cms.services.objectGroup = { getList, getDetailByCode, add, save, close, open, remove };
 });
