@@ -18,21 +18,18 @@ module.exports = ({ DataTypes }) => {
       },
       status: {
         type: DataTypes.INTEGER,
+        defaultValue: 0,
         comment: '0:正常,10:关闭'
       }
-    },
-    associate: ({ objectGroup, objectModel }) => {
-      objectGroup.hasMany(objectModel, {
-        sourceKey: 'code',
-        foreignKey: 'objectGroupCode',
-        constraints: false
-      });
     },
     options: {
       indexed: [
         {
           unique: true,
-          fields: ['code']
+          fields: ['code', 'deleted_at']
+        },
+        {
+          fields: ['code', 'status', 'deleted_at']
         }
       ]
     }

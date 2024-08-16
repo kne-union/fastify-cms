@@ -12,6 +12,7 @@ module.exports = fp(async (fastify, options) => {
         query: {
           type: 'object',
           properties: {
+            status: { type: 'number' },
             perPage: { type: 'number' },
             currentPage: { type: 'number' }
           }
@@ -46,7 +47,7 @@ module.exports = fp(async (fastify, options) => {
       }
     },
     async request => {
-      return await services.objectGroup.getList(merge({ perPage: 20, currentPage: 1 }, request.query));
+      return await services.group.getList(merge({ perPage: 20, currentPage: 1 }, request.query));
     }
   );
 
@@ -85,7 +86,7 @@ module.exports = fp(async (fastify, options) => {
       }
     },
     async request => {
-      return await services.objectGroup.getDetailByCode({ code: request.query.code });
+      return await services.group.getDetailByCode({ code: request.query.code });
     }
   );
 
@@ -115,7 +116,7 @@ module.exports = fp(async (fastify, options) => {
       }
     },
     async request => {
-      await services.objectGroup.add(request.body);
+      await services.group.add(request.body);
       return {};
     }
   );
@@ -146,7 +147,7 @@ module.exports = fp(async (fastify, options) => {
       }
     },
     async request => {
-      await services.objectGroup.save(request.body);
+      await services.group.save(request.body);
       return {};
     }
   );
@@ -175,7 +176,7 @@ module.exports = fp(async (fastify, options) => {
       }
     },
     async request => {
-      await services.objectGroup.close(request.body);
+      await services.group.close(request.body);
       return {};
     }
   );
@@ -204,7 +205,7 @@ module.exports = fp(async (fastify, options) => {
       }
     },
     async request => {
-      await services.objectGroup.open(request.body);
+      await services.group.open(request.body);
       return {};
     }
   );
@@ -233,7 +234,7 @@ module.exports = fp(async (fastify, options) => {
       }
     },
     async request => {
-      await services.objectGroup.remove(request.body);
+      await services.group.remove(request.body);
       return {};
     }
   );

@@ -1,11 +1,6 @@
 module.exports = ({ DataTypes }) => {
   return {
     model: {
-      id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-      },
       code: {
         type: DataTypes.STRING,
         defaultValue: DataTypes.UUIDV4,
@@ -21,31 +16,30 @@ module.exports = ({ DataTypes }) => {
         type: DataTypes.TEXT,
         comment: '描述'
       },
-      objectGroupCode: {
+      groupCode: {
         type: DataTypes.STRING,
         allowNull: false
+      },
+      status: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: '0:正常,10:关闭'
       }
-    },
-    associate: ({ objectModel, objectGroup, objectField }) => {
-      objectModel.belongsTo(objectGroup, {
-        targetKey: 'code',
-        foreignKey: 'objectGroupCode',
-        constraints: false
-      });
-      objectModel.hasMany(objectField, {
-        sourceKey: 'code',
-        foreignKey: 'objectModelCode',
-        constraints: false
-      });
     },
     options: {
       indexed: [
         {
           unique: true,
-          fields: ['code', 'object_group_code', 'delete_at']
+          name: 'object_unique_key',
+          fields: ['code', 'group_code', 'deleted_at']
         },
         {
-          fields: ['object_group_code']
+          name: 'object_status_key',
+          fields: ['group_code', 'status', 'deleted_at']
+        },
+        {
+          name: 'object_key',
+          fields: ['group_code', 'deleted_at']
         }
       ]
     }

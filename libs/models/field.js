@@ -1,16 +1,21 @@
 module.exports = ({ DataTypes }) => {
   return {
     model: {
-      id: {
-        type: DataTypes.INTEGER,
-        autoIncrement: true,
-        primaryKey: true
-      },
       code: {
         type: DataTypes.STRING,
         defaultValue: DataTypes.UUIDV4,
         allowNull: false,
         comment: '唯一标识，默认为UUIDV4自动生成'
+      },
+      objectCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        comment: '对象code'
+      },
+      groupCode: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        comment: '对象集合code'
       },
       fieldName: {
         type: DataTypes.STRING,
@@ -30,18 +35,19 @@ module.exports = ({ DataTypes }) => {
         type: DataTypes.INTEGER,
         comment: '字段排序'
       },
-      parentCode: {
-        type: DataTypes.STRING,
-        defaultValue: '',
-        comment: '默认为空，可以关联当前对象的其他字段code'
-      },
       description: {
         type: DataTypes.TEXT,
         comment: '描述'
       },
       type: {
         type: DataTypes.JSON,
-        comment: '数据类型:jsonschema表示',
+        comment: 'number,string,boolean,reference',
+        allowNull: false
+      },
+      isList: {
+        type: DataTypes.BOOLEAN,
+        comment: '是否为列表',
+        defaultValue: false,
         allowNull: false
       },
       formInputType: {
@@ -53,34 +59,31 @@ module.exports = ({ DataTypes }) => {
         type: DataTypes.JSON,
         comment: '表单输入组件参数'
       },
-      objectModelCode: {
-        type: DataTypes.STRING,
-        allowNull: false
-      },
       isIndexed: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
         comment: '该字段是否为索引字段'
+      },
+      status: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        comment: '0:正常,10:关闭'
       }
-    },
-    associate: ({ objectModel, objectField }) => {
-      objectField.belongsTo(objectModel, {
-        targetKey: 'code',
-        foreignKey: 'objectModelCode',
-        constraints: false
-      });
     },
     options: {
       indexed: [
         {
           unique: true,
-          fields: ['code', 'object_model_code']
+          name: 'field_unique_key',
+          fields: ['code', 'object_code', 'group_code', 'deleted_at']
         },
         {
-          fields: ['object_model_code']
+          name: 'field_status_key',
+          fields: ['object_code', 'group_code', 'status', 'deleted_at']
         },
         {
-          fields: ['parent_code']
+          name: 'field_key',
+          fields: ['object_code', 'group_code', 'deleted_at']
         }
       ]
     }
