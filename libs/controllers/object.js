@@ -46,6 +46,28 @@ module.exports = fp(async (fastify, options) => {
     }
   );
 
+  fastify.get(
+    `${options.prefix}/object/getMetaInfo`,
+    {
+      onRequest: options.createAuthenticate('object:read'),
+      schema: {
+        tags: ['对象模型'],
+        summary: '获取对象meta信息',
+        query: {
+          type: 'object',
+          required: ['objectCode', 'groupCode'],
+          properties: {
+            objectCode: { type: 'string' },
+            groupCode: { type: 'string' }
+          }
+        }
+      }
+    },
+    async request => {
+      return await services.object.getMetaInfo(request.query);
+    }
+  );
+
   fastify.post(
     `${options.prefix}/object/add`,
     {

@@ -21,9 +21,15 @@ module.exports = ({ DataTypes }) => {
         allowNull: false,
         comment: '目标关联对象code'
       },
+      targetObjectFieldLabelCode: {
+        type: DataTypes.STRING,
+        defaultValue: 'name',
+        comment: '目标关联对象字段名称取值code，默认为name'
+      },
       type: {
         type: DataTypes.STRING,
         allowNull: false,
+        defaultValue: 'outer',
         comment: '引用方式:inner内部引用，outer外部引用'
       }
     },

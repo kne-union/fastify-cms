@@ -103,7 +103,7 @@ module.exports = fp(async (fastify, options) => {
         },
         transaction: t
       });
-      await group.destroy();
+      await group.destroy({ transaction: t });
       await t.commit();
     } catch (e) {
       await t.rollback();

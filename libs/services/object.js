@@ -1,4 +1,5 @@
 const fp = require('fastify-plugin');
+const get = require('lodash/get');
 
 module.exports = fp(async (fastify, options) => {
   const { models, services } = fastify.cms;
@@ -17,19 +18,28 @@ module.exports = fp(async (fastify, options) => {
   };
 
   const getDetailByCode = async ({ code, groupCode }) => {
+    const group = await models.group.findOne({
+      where: { code: groupCode }
+    });
+
+    if (!group) {
+      throw new Error('对象集合不存在');
+    }
+
     const object = await models.object.findOne({
       where: { code, groupCode }
     });
-    const group = await models.group.findOne({
-      where: { groupCode }
-    });
+
+    if (!object) {
+      throw new Error('对象不存在');
+    }
     return Object.assign({}, object.get({ plain: true }), {
       group: group.get({ plain: true })
     });
   };
 
   const add = async ({ groupCode, ...info }) => {
-    const objectGroup = await models.objectGroup.findOne({
+    const objectGroup = await models.group.findOne({
       where: {
         code: groupCode
       }
@@ -81,6 +91,27 @@ module.exports = fp(async (fastify, options) => {
     await object.save();
   };
 
+  const getMetaInfo = async ({ groupCode, objectCode }) => {
+    const object = await getDetailByCode({ groupCode, code: objectCode });
+    const fields = await services.field.getList({
+      objectCode,
+      groupCode,
+      status: 0
+    });
+    const references = await models.reference.findAll({
+      where: {
+        groupCode,
+        originObjectCode: objectCode
+      }
+    });
+
+    return {
+      object,
+      fields,
+      references
+    };
+  };
+
   const remove = async ({ id }) => {
     const object = await models.object.findByPk(id);
 
@@ -89,7 +120,18 @@ module.exports = fp(async (fastify, options) => {
     }
 
     if (!(await services.content.contentIsEmpty({ groupCode: object.groupCode, objectCode: object.code }))) {
-      throw new Error(`象对中已存在数据不允许删除，请处理好数据后重试`);
+      throw new Error(`对象中已存在数据不允许删除，请处理好数据后重试`);
+    }
+
+    if (
+      (await models.reference.count({
+        where: {
+          groupCode: object.groupCode,
+          targetObjectCode: object.code
+        }
+      })) > 0
+    ) {
+      throw new Error('该对象已经被其他对象字段引用，不允许删除');
     }
 
     const t = await fastify.sequelize.instance.transaction();
@@ -97,7 +139,7 @@ module.exports = fp(async (fastify, options) => {
       await models.reference.destroy({
         where: {
           groupCode: object.groupCode,
-          objectCode: object.code
+          originObjectCode: object.code
         },
         transaction: t
       });
@@ -108,13 +150,12 @@ module.exports = fp(async (fastify, options) => {
         },
         transaction: t
       });
-      await object.destroy();
+      await object.destroy({ transaction: t });
       await t.commit();
     } catch (e) {
       await t.rollback();
       throw e;
     }
-    await object.destroy();
   };
-  fastify.cms.services.object = { getList, getDetailByCode, add, save, close, open, remove };
+  fastify.cms.services.object = { getList, getDetailByCode, add, save, close, open, remove, getMetaInfo };
 });

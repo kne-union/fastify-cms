@@ -40,7 +40,7 @@ module.exports = ({ DataTypes }) => {
         comment: '描述'
       },
       type: {
-        type: DataTypes.JSON,
+        type: DataTypes.STRING,
         comment: 'number,string,boolean,reference',
         allowNull: false
       },
@@ -50,6 +50,14 @@ module.exports = ({ DataTypes }) => {
         defaultValue: false,
         allowNull: false
       },
+      maxLength: {
+        type: DataTypes.INTEGER,
+        comment: '如果为列表，列表的最大length'
+      },
+      minLength: {
+        type: DataTypes.INTEGER,
+        comment: '如果为列表，列表的最小length'
+      },
       formInputType: {
         type: DataTypes.STRING,
         defaultValue: 'Input',
@@ -58,6 +66,11 @@ module.exports = ({ DataTypes }) => {
       formInputProps: {
         type: DataTypes.JSON,
         comment: '表单输入组件参数'
+      },
+      isBlock: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: '该字段是否为块元素'
       },
       isIndexed: {
         type: DataTypes.BOOLEAN,

@@ -7,29 +7,27 @@ module.exports = ({ DataTypes }) => {
       objectCode: {
         type: DataTypes.STRING
       },
-      fieldCode: {
-        type: DataTypes.STRING
+      fieldName: {
+        type: DataTypes.STRING,
+        comment: '数据取值路径'
       },
       value: {
         type: DataTypes.JSON
-      },
-      type: {
-        type: DataTypes.STRING
       },
       contentId: {
         type: DataTypes.INTEGER
       }
     },
     options: {
+      paranoid: false,
       indexed: [
         {
-          unique: true,
           name: 'indexed_unique_key',
-          fields: ['field_code', 'object_code', 'group_code', 'content_id', 'deleted_at']
+          fields: ['field_name', 'object_code', 'group_code', 'content_id']
         },
         {
           name: 'indexed_value_key',
-          fields: ['field_code', 'object_code', 'group_code', 'value', 'deleted_at']
+          fields: ['field_name', 'object_code', 'group_code', 'value']
         }
       ]
     }

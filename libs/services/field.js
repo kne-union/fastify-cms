@@ -11,7 +11,9 @@ module.exports = fp(async (fastify, options) => {
       queryFilter['status'] = status;
     }
 
-    const objectModel = await models.object.findOne({ objectCode, groupCode });
+    const objectModel = await models.object.findOne({
+      where: { code: objectCode, groupCode }
+    });
     if (!objectModel) {
       throw new Error('对象不存在');
     }
@@ -26,7 +28,7 @@ module.exports = fp(async (fastify, options) => {
 
     const referenceList = await models.reference.findAll({
       where: {
-        objectCode,
+        originObjectCode: objectCode,
         groupCode
       }
     });
@@ -64,7 +66,10 @@ module.exports = fp(async (fastify, options) => {
         field.type === 'reference' && referenceMap[field.code]
           ? {
               reference: referenceMap[field.code],
-              referenceObject: referenceObjectMap[referenceMap[field.code].targetObjectCode]
+              referenceObject: referenceObjectMap[referenceMap[field.code].targetObjectCode],
+              referenceObjectCode: referenceMap[field.code].targetObjectCode,
+              referenceFieldLabelCode: referenceMap[field.code].targetObjectFieldLabelCode,
+              referenceType: referenceMap[field.code].type
             }
           : {}
       );
@@ -72,12 +77,19 @@ module.exports = fp(async (fastify, options) => {
   };
 
   const add = async ({ objectCode, groupCode, ...info }) => {
-    const objectModel = await models.object.findOne({ objectCode, groupCode });
+    const objectModel = await models.object.findOne({
+      where: { code: objectCode, groupCode }
+    });
     if (!objectModel) {
       throw new Error('对象不存在');
     }
 
-    if (info['code'] && (await models.object.count({ objectCode, groupCode, code: info['code'] })) > 0) {
+    if (
+      info['code'] &&
+      (await models.field.count({
+        where: { objectCode, groupCode, code: info['code'] }
+      })) > 0
+    ) {
       throw new Error(`该对象下${info['code']}字段已存在`);
     }
 
@@ -86,7 +98,7 @@ module.exports = fp(async (fastify, options) => {
     });
 
     const target = { objectCode, groupCode, index };
-    ['name', 'code', 'description', 'fieldName', 'rule', 'type', 'isList', 'formInputType', 'formInputProps', 'isIndexed'].forEach(name => {
+    ['name', 'code', 'description', 'fieldName', 'rule', 'type', 'isList', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isBlock', 'isIndexed'].forEach(name => {
       if (info[name]) {
         target[name] = info[name];
       }
@@ -106,9 +118,10 @@ module.exports = fp(async (fastify, options) => {
         await models.reference.create(
           {
             groupCode,
-            objectCode: field.objectCode,
+            originObjectCode: field.objectCode,
             fieldCode: field.code,
             targetObjectCode: targetObject.code,
+            targetObjectFieldLabelCode: info['referenceFieldLabelCode'],
             type: info['referenceType']
           },
           { transaction: t }
@@ -123,11 +136,8 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
-  //如果所在对象已经有数据，则不允许执行删除操作，使用关闭操作
-  const remove = async ({ objectCode, groupCode, fieldCode }) => {
-    const field = await models.field.findOne({
-      where: { objectCode, groupCode, fieldCode }
-    });
+  const remove = async ({ id }) => {
+    const field = await models.field.findByPk(id);
     if (!field) {
       throw new Error('字段不存在');
     }
@@ -140,8 +150,8 @@ module.exports = fp(async (fastify, options) => {
     try {
       await models.reference.destroy({
         where: {
-          groupCode,
-          objectCode: field.objectCode,
+          groupCode: field.groupCode,
+          originObjectCode: field.objectCode,
           fieldCode: field.code
         },
         transaction: t
@@ -159,9 +169,9 @@ module.exports = fp(async (fastify, options) => {
     if (!field) {
       throw new Error('字段不存在');
     }
-    ['name', 'description', 'rule', 'formInputType', 'formInputProps'].forEach(name => {
+    ['name', 'description', 'rule', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isBlock'].forEach(name => {
       if (info[name]) {
-        field[name] = info['name'];
+        field[name] = info[name];
       }
     });
 
@@ -195,6 +205,8 @@ module.exports = fp(async (fastify, options) => {
 
     const prevField = await models.field.findOne({
       where: {
+        groupCode: field.groupCode,
+        objectCode: field.objectCode,
         index: {
           [Op.lt]: field.index
         }
@@ -209,37 +221,52 @@ module.exports = fp(async (fastify, options) => {
     const currentIndex = field.index;
     field.index = prevField.index;
     prevField.index = currentIndex;
-
-    await field.save();
-    await prevField.save();
+    const t = await fastify.sequelize.instance.transaction();
+    try {
+      await field.save({ transaction: t });
+      await prevField.save({ transaction: t });
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
   };
 
   const moveDown = async ({ id }) => {
-    const objectField = await models.objectField.findByPk(id);
+    const field = await models.field.findByPk(id);
 
-    if (!objectField) {
+    if (!field) {
       throw new Error('字段不存在');
     }
 
-    const nextObjectField = await models.objectField.findOne({
+    const nexField = await models.field.findOne({
       where: {
+        groupCode: field.groupCode,
+        objectCode: field.objectCode,
         index: {
-          [Op.gt]: objectField.index
+          [Op.gt]: field.index
         }
       },
       order: [['index', 'ASC']]
     });
 
-    if (!nextObjectField) {
+    if (!nexField) {
       throw new Error('无法继续下移');
     }
 
-    const currentIndex = objectField.index;
-    objectField.index = nextObjectField.index;
-    nextObjectField.index = currentIndex;
+    const currentIndex = field.index;
+    field.index = nexField.index;
+    nexField.index = currentIndex;
 
-    await objectField.save();
-    await nextObjectField.save();
+    const t = await fastify.sequelize.instance.transaction();
+    try {
+      await field.save({ transaction: t });
+      await nexField.save({ transaction: t });
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
   };
 
   fastify.cms.services.field = { getList, add, remove, save, close, open, moveUp, moveDown };

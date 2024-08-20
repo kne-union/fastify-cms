@@ -13,8 +13,8 @@ module.exports = fp(async (fastify, options) => {
           type: 'object',
           required: ['objectCode', 'groupCode'],
           properties: {
-            groupCode: { type: 'number' },
-            objectCode: { type: 'number' },
+            groupCode: { type: 'string' },
+            objectCode: { type: 'string' },
             status: { type: 'number' }
           }
         }
@@ -47,8 +47,12 @@ module.exports = fp(async (fastify, options) => {
             formInputProps: { type: 'object' },
             isIndexed: { type: 'boolean' },
             isList: { type: 'boolean' },
+            maxLength: { type: 'number' },
+            minLength: { type: 'number' },
+            isBlock: { type: 'boolean' },
             type: { type: 'string' },
             referenceObjectCode: { type: 'string' },
+            referenceFieldLabelCode: { type: 'string' },
             referenceType: { type: 'string' }
           }
         }
@@ -76,7 +80,10 @@ module.exports = fp(async (fastify, options) => {
             description: { type: 'string' },
             rule: { type: 'string' },
             formInputType: { type: 'string' },
-            formInputProps: { type: 'object' }
+            formInputProps: { type: 'object' },
+            maxLength: { type: 'number' },
+            minLength: { type: 'number' },
+            isBlock: { type: 'boolean' }
           }
         }
       }
@@ -127,6 +134,28 @@ module.exports = fp(async (fastify, options) => {
     },
     async request => {
       await services.field.open(request.body);
+      return {};
+    }
+  );
+
+  fastify.post(
+    `${options.prefix}/field/remove`,
+    {
+      onRequest: options.createAuthenticate('field:write'),
+      schema: {
+        tags: ['对象模型'],
+        summary: '删除字段',
+        body: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'number' }
+          }
+        }
+      }
+    },
+    async request => {
+      await services.field.remove(request.body);
       return {};
     }
   );
