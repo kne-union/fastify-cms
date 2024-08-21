@@ -141,13 +141,16 @@ module.exports = fp(async (fastify, options) => {
   };
 
   const getDetail = async ({ id }) => {
-    const { object, fields, references } = await services.object.getMetaInfo({ groupCode, objectCode });
-
     const content = await models.content.findByPk(id);
 
     if (!content) {
       throw new Error('数据不存在');
     }
+
+    const { groupCode, objectCode } = content;
+
+    const { object, fields, references } = await services.object.getMetaInfo({ groupCode, objectCode });
+
     return {
       object,
       fields,
