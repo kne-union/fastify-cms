@@ -9,6 +9,177 @@
     "schemas": {}
   },
   "paths": {
+    "/api/v1/cms/content/getList": {
+      "get": {
+        "summary": "获取对象内容列表",
+        "tags": [
+          "对象内容"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "groupCode",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "objectCode",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "perPage",
+            "required": false
+          },
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "currentPage",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/content/getDetail": {
+      "get": {
+        "summary": "获取对象内容详情",
+        "tags": [
+          "对象内容"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "number"
+            },
+            "in": "query",
+            "name": "id",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/content/add": {
+      "post": {
+        "summary": "添加对象内容",
+        "tags": [
+          "对象内容"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data",
+                  "objectCode",
+                  "groupCode"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "object"
+                  },
+                  "groupCode": {
+                    "type": "string"
+                  },
+                  "objectCode": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/content/save": {
+      "post": {
+        "summary": "添加对象内容",
+        "tags": [
+          "对象内容"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/content/remove": {
+      "post": {
+        "summary": "删除对象内容",
+        "tags": [
+          "对象内容"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
     "/api/v1/cms/field/getList": {
       "get": {
         "summary": "获取对象字段列表",
@@ -18,7 +189,7 @@
         "parameters": [
           {
             "schema": {
-              "type": "number"
+              "type": "string"
             },
             "in": "query",
             "name": "groupCode",
@@ -26,7 +197,7 @@
           },
           {
             "schema": {
-              "type": "number"
+              "type": "string"
             },
             "in": "query",
             "name": "objectCode",
@@ -99,10 +270,22 @@
                   "isList": {
                     "type": "boolean"
                   },
+                  "maxLength": {
+                    "type": "number"
+                  },
+                  "minLength": {
+                    "type": "number"
+                  },
+                  "isBlock": {
+                    "type": "boolean"
+                  },
                   "type": {
                     "type": "string"
                   },
                   "referenceObjectCode": {
+                    "type": "string"
+                  },
+                  "referenceFieldLabelCode": {
                     "type": "string"
                   },
                   "referenceType": {
@@ -153,6 +336,15 @@
                   },
                   "formInputProps": {
                     "type": "object"
+                  },
+                  "maxLength": {
+                    "type": "number"
+                  },
+                  "minLength": {
+                    "type": "number"
+                  },
+                  "isBlock": {
+                    "type": "boolean"
                   }
                 }
               }
@@ -201,6 +393,37 @@
     "/api/v1/cms/field/open": {
       "post": {
         "summary": "开启字段",
+        "tags": [
+          "对象模型"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/field/remove": {
+      "post": {
+        "summary": "删除字段",
         "tags": [
           "对象模型"
         ],
@@ -683,6 +906,37 @@
             },
             "in": "query",
             "name": "code",
+            "required": true
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "groupCode",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/object/getMetaInfo": {
+      "get": {
+        "summary": "获取对象meta信息",
+        "tags": [
+          "对象模型"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "in": "query",
+            "name": "objectCode",
             "required": true
           },
           {
