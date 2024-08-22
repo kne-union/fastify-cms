@@ -3,7 +3,7 @@
   "info": {
     "title": "内容发布管理",
     "description": "内容发布管理",
-    "version": "1.0.0-alpha.0"
+    "version": "1.0.0-alpha.1"
   },
   "components": {
     "schemas": {}

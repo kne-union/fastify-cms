@@ -157,5 +157,14 @@ module.exports = fp(async (fastify, options) => {
       throw e;
     }
   };
+
+  const copy = async ({ id, code, ...info }) => {
+    /**
+     * 1. 新建object
+     * 2. 复制所有field
+     * 3. 复制field所有相关reference
+     * */
+  };
+
   fastify.cms.services.object = { getList, getDetailByCode, add, save, close, open, remove, getMetaInfo };
 });
