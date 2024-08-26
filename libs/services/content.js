@@ -1,10 +1,12 @@
 const fp = require('fastify-plugin');
+const transform = require('lodash/transform');
 const get = require('lodash/get');
+const groupBy = require('lodash/groupBy');
 const set = require('lodash/set');
 
 module.exports = fp(async (fastify, options) => {
   const { models, services } = fastify.cms;
-
+  const { Op } = fastify.sequelize.Sequelize;
   //当对象没有数据时才允许修改
   const contentIsEmpty = async ({ groupCode, objectCode }) => {
     const queryFilter = {};
@@ -118,7 +120,7 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
-  const getList = async ({ groupCode, objectCode, filter, includes, perPage = 20, currentPage = 1 }) => {
+  const getList = async ({ groupCode, objectCode, filter, perPage = 20, currentPage = 1 }) => {
     const { object, fields, references } = await services.object.getMetaInfo({ groupCode, objectCode });
     const { count, rows } = await models.content.findAndCountAll({
       where: {
@@ -129,12 +131,49 @@ module.exports = fp(async (fastify, options) => {
       limit: perPage
     });
 
+    //查询关联对象数据
+    const fieldMap = transform(
+      fields,
+      (result, value) => {
+        result[value.code] = value;
+      },
+      {}
+    );
+    const referenceQuery = [];
+    references
+      .filter(({ type }) => type === 'outer')
+      .forEach(({ fieldCode }) => {
+        const { fieldName } = fieldMap[fieldCode];
+        referenceQuery.push(...rows.map(({ data }) => get(data, fieldName)));
+      });
+
+    const referenceContents = await models.content.findAll({
+      where: {
+        id: {
+          [Op.in]: referenceQuery
+        }
+      }
+    });
+
     return {
       object,
       fields,
       references,
+      referenceContents: transform(
+        groupBy(referenceContents, 'objectCode'),
+        (result, item, key) => {
+          result[key] = item.map(content =>
+            Object.assign({}, content.data, {
+              id: content.id,
+              createdAt: content.createdAt,
+              updatedAt: content.updatedAt
+            })
+          );
+        },
+        {}
+      ),
       pageData: rows.map(item => {
-        return Object.assign({}, item.data, { id: item.id });
+        return Object.assign({}, item.data, { id: item.id, createdAt: item.createdAt, updatedAt: item.updatedAt });
       }),
       totalCount: count
     };
