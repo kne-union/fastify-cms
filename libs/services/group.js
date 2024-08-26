@@ -28,14 +28,46 @@ module.exports = fp(async (fastify, options) => {
     });
   };
 
-  const add = async info => {
+  const add = async (info, other) => {
     const target = {};
+    const groupModel = await models.group.findOne({
+      where: { code: info.code }
+    });
+    if (groupModel) {
+      throw new Error(`该对象已存在`);
+    }
     ['code', 'name', 'description'].forEach(name => {
       if (info[name]) {
         target[name] = info[name];
       }
     });
-    await models.group.create(target);
+    await models.group.create(target, other);
+  };
+
+  const copy = async ({copyGroupCode, ...info}) => {
+    const t = await fastify.sequelize.instance.transaction();
+
+    try {
+      await add(info, { transaction: t });
+      const objects = await models.object.findAll({
+        where: {groupCode: copyGroupCode}
+      });
+      await Promise.all(
+        objects.map(async (item) => {
+          const object = { groupCode: info.code };
+          ['name', 'code', 'description'].forEach(name => {
+            if (item[name]) {
+              object[name] = item[name];
+            }
+          });
+          return await services.object.add(object, { transaction: t });
+        })
+      );
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
   };
 
   const save = async info => {
@@ -111,5 +143,5 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
-  fastify.cms.services.group = { getList, getDetailByCode, add, save, close, open, remove };
+  fastify.cms.services.group = { getList, getDetailByCode, add, copy, save, close, open, remove };
 });
