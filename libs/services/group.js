@@ -52,6 +52,12 @@ module.exports = fp(async (fastify, options) => {
       const objects = await models.object.findAll({
         where: {groupCode: copyGroupCode}
       });
+      const fields = await models.field.findAll({
+        where: {groupCode: copyGroupCode}
+      });
+      const references = await models.reference.findAll({
+        where: {groupCode: copyGroupCode}
+      });
       await Promise.all(
         objects.map(async (item) => {
           const object = { groupCode: info.code };
@@ -60,7 +66,29 @@ module.exports = fp(async (fastify, options) => {
               object[name] = item[name];
             }
           });
-          return await services.object.add(object, { transaction: t });
+          await models.object.create(object, { transaction: t });
+        })
+      );
+      await Promise.all(
+        fields.map(async (item) => {
+          const field = { groupCode: info.code };
+          ['name', 'code', 'description', 'isList', 'isBlock', 'objectCode', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isIndexed'].forEach(name => {
+            if (item[name]) {
+              field[name] = item[name];
+            }
+          });
+          await models.field.create(field, { transaction: t });
+        })
+      );
+      await Promise.all(
+        references.map(async (item) => {
+          const reference = { groupCode: info.code };
+          ['fieldCode', 'originObjectCode', 'targetObjectCode', 'targetObjectFieldLabelCode', 'type'].forEach(name => {
+            if (item[name]) {
+              reference[name] = item[name];
+            }
+          });
+          await models.reference.create(reference, { transaction: t });
         })
       );
       await t.commit();
