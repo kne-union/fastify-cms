@@ -1,5 +1,6 @@
 const fp = require('fastify-plugin');
 const get = require('lodash/get');
+const transform = require('lodash/transform');
 
 module.exports = fp(async (fastify, options) => {
   const { models, services } = fastify.cms;

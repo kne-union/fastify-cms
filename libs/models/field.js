@@ -72,6 +72,11 @@ module.exports = ({ DataTypes }) => {
         defaultValue: false,
         comment: '该字段是否为块元素'
       },
+      isHidden: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: '该字段是否为隐藏元素'
+      },
       isIndexed: {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
