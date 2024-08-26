@@ -122,6 +122,38 @@ module.exports = fp(async (fastify, options) => {
   );
 
   fastify.post(
+    `${options.prefix}/group/copy`,
+    {
+      onRequest: options.createAuthenticate('group:write'),
+      schema: {
+        tags: ['对象模型'],
+        summary: '添加对象集合',
+        body: {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            copyGroupCode: { type: 'string' },
+            code: { type: 'string' },
+            name: { type: 'string' },
+            description: { type: 'string' }
+          }
+        },
+        response: {
+          200: {
+            content: {
+              'application/json': {}
+            }
+          }
+        }
+      }
+    },
+    async request => {
+      await services.group.copy(request.body);
+      return {};
+    }
+  );
+
+  fastify.post(
     `${options.prefix}/group/save`,
     {
       onRequest: options.createAuthenticate('group:write'),

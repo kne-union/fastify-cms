@@ -38,11 +38,12 @@ module.exports = fp(async (fastify, options) => {
     });
   };
 
-  const add = async ({ groupCode, ...info }) => {
+  const add = async ({ groupCode, ...info }, other) => {
     const objectGroup = await models.group.findOne({
       where: {
         code: groupCode
-      }
+      },
+      ...other
     });
     if (!objectGroup) {
       throw new Error('对象集合不存在');
@@ -54,7 +55,7 @@ module.exports = fp(async (fastify, options) => {
       }
     });
 
-    await models.object.create(target);
+    await models.object.create(target, other);
   };
 
   const save = async ({ id, ...info }) => {
