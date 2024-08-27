@@ -44,7 +44,7 @@ module.exports = fp(async (fastify, options) => {
     await models.group.create(target, other);
   };
 
-  const copy = async ({copyGroupCode, ...info}) => {
+  const copy = async ({copyGroupCode, withContent, ...info}) => {
     const t = await fastify.sequelize.instance.transaction();
 
     try {
@@ -58,36 +58,50 @@ module.exports = fp(async (fastify, options) => {
       const references = await models.reference.findAll({
         where: {groupCode: copyGroupCode}
       });
+      /*const indexes = await models.indexed.findAll({
+        where: {groupCode: copyGroupCode}
+      });*/
+
       await Promise.all(
-        objects.map(async (item) => {
-          const object = {groupCode: info.code};
-          ['name', 'code', 'description'].forEach(name => {
-            if (item[name]) {
-              object[name] = item[name];
-            }
-          });
-          await models.object.create(object, {transaction: t});
-        }).concat(
-          fields.map(async (item) => {
+        [
+          await models.object.bulkCreate(objects.map((item) => {
+            const object = {groupCode: info.code};
+            ['name', 'code', 'description'].forEach(name => {
+              if (item[name]) {
+                object[name] = item[name];
+              }
+            });
+            return object;
+          }), {transaction: t}),
+          await models.field.bulkCreate(fields.map((item) => {
             const field = {groupCode: info.code};
             ['name', 'code', 'description', 'isList', 'isBlock', 'objectCode', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isIndexed'].forEach(name => {
               if (item[name]) {
                 field[name] = item[name];
               }
             });
-            await models.field.create(field, {transaction: t});
-          }),
-          references.map(async (item) => {
+            return field;
+          }), {transaction: t}),
+          await models.reference.bulkCreate(references.map((item) => {
             const reference = {groupCode: info.code};
             ['fieldCode', 'originObjectCode', 'targetObjectCode', 'targetObjectFieldLabelCode', 'type'].forEach(name => {
               if (item[name]) {
                 reference[name] = item[name];
               }
             });
-            await models.reference.create(reference, {transaction: t});
-          })
-        )
+            return reference;
+          }), {transaction: t}),
+        ]
       );
+      /*indexes.map(async (item) => {
+        const indexed = {groupCode: info.code};
+        ['objectCode', 'fieldName', 'value', 'contentId'].forEach(name => {
+          if (item[name]) {
+            indexed[name] = item[name];
+          }
+        });
+        await models.indexed.create(indexed, {transaction: t});
+      })*/
       await t.commit();
     } catch (e) {
       await t.rollback();
