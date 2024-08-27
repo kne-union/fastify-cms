@@ -133,6 +133,7 @@ module.exports = fp(async (fastify, options) => {
           required: ['name'],
           properties: {
             copyGroupCode: { type: 'string' },
+            withContent: { type: 'boolean' },
             code: { type: 'string' },
             name: { type: 'string' },
             description: { type: 'string' }
