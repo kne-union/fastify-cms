@@ -1,5 +1,4 @@
 const fp = require('fastify-plugin');
-const get = require('lodash/get');
 
 module.exports = fp(async (fastify, options) => {
   const { models, services } = fastify.cms;
@@ -159,13 +158,66 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
-  const copy = async ({ id, code, ...info }) => {
+  const copy = async ({copyId, withContent, ...info }) => {
     /**
      * 1. 新建object
      * 2. 复制所有field
      * 3. 复制field所有相关reference
      * */
+    const t = await fastify.sequelize.instance.transaction();
+    const object = await models.object.findOne({
+      where: {
+        id: copyId
+      },
+      transaction: t
+    });
+    if (!object) {
+      throw new Error('复制对象不存在');
+    }
+    const target = { groupCode: object.groupCode };
+    ['name', 'code', 'description'].forEach(name => {
+      if (info[name]) {
+        target[name] = info[name];
+      }
+    });
+    const {groupCode, code} = object;
+    const fields = await models.field.findAll({
+      where: {groupCode, objectCode: code}
+    });
+
+    const references = await models.reference.findAll({
+      where: {groupCode, originObjectCode: code}
+    });
+
+    try {
+      await Promise.all(
+        [
+          await models.object.create(target, { transaction: t }),
+          await models.field.bulkCreate(fields.map((item) => {
+            const field = {groupCode, objectCode: info.code};
+            ['name', 'code', 'description', 'isList', 'isBlock', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isIndexed'].forEach(name => {
+              if (item[name]) {
+                field[name] = item[name];
+              }
+            });
+            return field;
+          }), {transaction: t}),
+          await models.reference.bulkCreate(references.map((item) => {
+            const reference = {groupCode, originObjectCode: info.code};
+            ['fieldCode', 'targetObjectCode', 'targetObjectFieldLabelCode', 'type'].forEach(name => {
+              if (item[name]) {
+                reference[name] = item[name];
+              }
+            });
+            return reference;
+          }), {transaction: t}),
+        ]
+      );
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
   };
 
-  fastify.cms.services.object = { getList, getDetailByCode, add, save, close, open, remove, getMetaInfo };
+  fastify.cms.services.object = { getList, getDetailByCode, add, copy, save, close, open, remove, getMetaInfo };
 });

@@ -34,7 +34,7 @@ module.exports = fp(async (fastify, options) => {
       where: { code: info.code }
     });
     if (groupModel) {
-      throw new Error(`该对象已存在`);
+      throw new Error(`该对象集合已存在`);
     }
     ['code', 'name', 'description'].forEach(name => {
       if (info[name]) {

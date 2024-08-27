@@ -94,6 +94,32 @@ module.exports = fp(async (fastify, options) => {
   );
 
   fastify.post(
+    `${options.prefix}/object/copy`,
+    {
+      onRequest: options.createAuthenticate('object:write'),
+      schema: {
+        tags: ['对象模型'],
+        summary: '添加对象',
+        body: {
+          type: 'object',
+          required: ['name', 'copyId'],
+          properties: {
+            copyId: { type: 'number' },
+            withContent: { type: 'boolean' },
+            name: { type: 'string' },
+            code: { type: 'string' },
+            description: { type: 'string' }
+          }
+        }
+      }
+    },
+    async request => {
+      await services.object.copy(request.body);
+      return {};
+    }
+  );
+
+  fastify.post(
     `${options.prefix}/object/save`,
     {
       onRequest: options.createAuthenticate('object:write'),
