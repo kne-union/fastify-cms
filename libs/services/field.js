@@ -111,7 +111,8 @@ module.exports = fp(async (fastify, options) => {
     }
 
     const index = await models.field.count({
-      where: { objectCode, groupCode }
+      where: { objectCode, groupCode },
+      paranoid: false
     });
 
     const target = { objectCode, groupCode, index };
