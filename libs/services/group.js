@@ -28,14 +28,85 @@ module.exports = fp(async (fastify, options) => {
     });
   };
 
-  const add = async info => {
+  const add = async (info, other) => {
     const target = {};
+    const groupModel = await models.group.findOne({
+      where: { code: info.code }
+    });
+    if (groupModel) {
+      throw new Error(`该对象集合已存在`);
+    }
     ['code', 'name', 'description'].forEach(name => {
       if (info[name]) {
         target[name] = info[name];
       }
     });
-    await models.group.create(target);
+    await models.group.create(target, other);
+  };
+
+  const copy = async ({copyGroupCode, withContent, ...info}) => {
+    const t = await fastify.sequelize.instance.transaction();
+
+    try {
+      await add(info, { transaction: t });
+      const objects = await models.object.findAll({
+        where: {groupCode: copyGroupCode}
+      });
+      const fields = await models.field.findAll({
+        where: {groupCode: copyGroupCode}
+      });
+      const references = await models.reference.findAll({
+        where: {groupCode: copyGroupCode}
+      });
+      /*const indexes = await models.indexed.findAll({
+        where: {groupCode: copyGroupCode}
+      });*/
+
+      await Promise.all(
+        [
+          await models.object.bulkCreate(objects.map((item) => {
+            const object = {groupCode: info.code};
+            ['name', 'code', 'description'].forEach(name => {
+              if (item[name]) {
+                object[name] = item[name];
+              }
+            });
+            return object;
+          }), {transaction: t}),
+          await models.field.bulkCreate(fields.map((item) => {
+            const field = {groupCode: info.code};
+            ['name', 'code', 'description', 'isList', 'isBlock', 'objectCode', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isIndexed'].forEach(name => {
+              if (item[name]) {
+                field[name] = item[name];
+              }
+            });
+            return field;
+          }), {transaction: t}),
+          await models.reference.bulkCreate(references.map((item) => {
+            const reference = {groupCode: info.code};
+            ['fieldCode', 'originObjectCode', 'targetObjectCode', 'targetObjectFieldLabelCode', 'type'].forEach(name => {
+              if (item[name]) {
+                reference[name] = item[name];
+              }
+            });
+            return reference;
+          }), {transaction: t}),
+        ]
+      );
+      /*indexes.map(async (item) => {
+        const indexed = {groupCode: info.code};
+        ['objectCode', 'fieldName', 'value', 'contentId'].forEach(name => {
+          if (item[name]) {
+            indexed[name] = item[name];
+          }
+        });
+        await models.indexed.create(indexed, {transaction: t});
+      })*/
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
   };
 
   const save = async info => {
@@ -111,5 +182,5 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
-  fastify.cms.services.group = { getList, getDetailByCode, add, save, close, open, remove };
+  fastify.cms.services.group = { getList, getDetailByCode, add, copy, save, close, open, remove };
 });

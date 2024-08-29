@@ -1,5 +1,6 @@
 const fp = require('fastify-plugin');
 const transform = require('lodash/transform');
+const isNil = require('lodash/isNil');
 module.exports = fp(async (fastify, options) => {
   const { models, services } = fastify.cms;
   const { Op } = fastify.sequelize.Sequelize;
@@ -58,6 +59,21 @@ module.exports = fp(async (fastify, options) => {
       {}
     );
 
+    const referenceFieldLabel = await models.field.findAll({
+      where: {
+        status: 0,
+        code: { [Op.in]: referenceList.filter(item => item.type === 'outer').map(item => item.targetObjectFieldLabelCode || 'name') }
+      }
+    });
+
+    const referenceFieldLabelMap = transform(
+      referenceFieldLabel,
+      (result, item) => {
+        result[item.code] = item.get({ plain: true });
+      },
+      {}
+    );
+
     return fieldList.map(item => {
       const field = item.get({ plain: true });
       return Object.assign(
@@ -68,7 +84,8 @@ module.exports = fp(async (fastify, options) => {
               reference: referenceMap[field.code],
               referenceObject: referenceObjectMap[referenceMap[field.code].targetObjectCode],
               referenceObjectCode: referenceMap[field.code].targetObjectCode,
-              referenceFieldLabelCode: referenceMap[field.code].targetObjectFieldLabelCode,
+              referenceFieldLabelCode: referenceMap[field.code].targetObjectFieldLabelCode || 'name',
+              referenceFieldLabel: referenceFieldLabelMap[referenceMap[field.code].targetObjectFieldLabelCode || 'name'],
               referenceType: referenceMap[field.code].type
             }
           : {}
@@ -98,8 +115,8 @@ module.exports = fp(async (fastify, options) => {
     });
 
     const target = { objectCode, groupCode, index };
-    ['name', 'code', 'description', 'fieldName', 'rule', 'type', 'isList', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isBlock', 'isIndexed'].forEach(name => {
-      if (info[name]) {
+    ['name', 'code', 'description', 'fieldName', 'rule', 'type', 'isList', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isBlock', 'isHidden', 'isIndexed'].forEach(name => {
+      if (!isNil(info[name])) {
         target[name] = info[name];
       }
     });
@@ -169,8 +186,8 @@ module.exports = fp(async (fastify, options) => {
     if (!field) {
       throw new Error('字段不存在');
     }
-    ['name', 'description', 'rule', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isBlock'].forEach(name => {
-      if (info[name]) {
+    ['name', 'description', 'rule', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isBlock', 'isHidden'].forEach(name => {
+      if (!isNil(info[name])) {
         field[name] = info[name];
       }
     });
