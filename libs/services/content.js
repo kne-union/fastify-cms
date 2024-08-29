@@ -1,6 +1,7 @@
 const fp = require('fastify-plugin');
 const transform = require('lodash/transform');
 const get = require('lodash/get');
+const isNil = require('lodash/isNil');
 const groupBy = require('lodash/groupBy');
 const set = require('lodash/set');
 
@@ -122,16 +123,6 @@ module.exports = fp(async (fastify, options) => {
 
   const getList = async ({ groupCode, objectCode, filter, perPage = 20, currentPage = 1 }) => {
     const { object, fields, references } = await services.object.getMetaInfo({ groupCode, objectCode });
-    const { count, rows } = await models.content.findAndCountAll({
-      where: {
-        groupCode,
-        objectCode
-      },
-      offset: perPage * (currentPage - 1),
-      limit: perPage
-    });
-
-    //查询关联对象数据
     const fieldMap = transform(
       fields,
       (result, value) => {
@@ -139,6 +130,122 @@ module.exports = fp(async (fastify, options) => {
       },
       {}
     );
+    const { count, rows } = await (async filter => {
+      if (filter) {
+        //如果存在索引筛选
+        const filterQuery = [];
+        Object.keys(filter).forEach(fieldCode => {
+          const field = fieldMap[fieldCode];
+          if (!(field && field.isIndexed)) {
+            return;
+          }
+          if (field.type === 'string' || field.type === 'phone') {
+            filterQuery.push({
+              groupCode,
+              objectCode,
+              fieldCode,
+              value: {
+                [Op.like]: `%${filter[fieldCode]}%`
+              }
+            });
+            return;
+          }
+          if (field.type === 'boolean') {
+            filterQuery.push({
+              groupCode,
+              objectCode,
+              fieldCode,
+              value: filter[fieldCode]
+            });
+            return;
+          }
+
+          if (['number'].indexOf(field.type) > -1) {
+            const targetQuery = {};
+            if (!isNil(filter[fieldCode][0])) {
+              targetQuery[Op.gt] = parseInt(filter[fieldCode][0]);
+            }
+            if (!isNil(filter[fieldCode][1])) {
+              targetQuery[Op.lt] = parseInt(filter[fieldCode][1]);
+            }
+            filterQuery.push({
+              groupCode,
+              objectCode,
+              fieldCode,
+              value: targetQuery
+            });
+            return;
+          }
+
+          if (['date', 'datetime'].indexOf(field.type) > -1) {
+            filterQuery.push({
+              groupCode,
+              objectCode,
+              fieldCode,
+              value: {
+                [Op.gt]: filter[fieldCode].value[0],
+                [Op.lt]: filter[fieldCode].value[1]
+              }
+            });
+            return;
+          }
+
+          if ((field.type === 'reference' && field.referenceType !== 'inner') || field.type === 'city' || field.type === 'industry') {
+            filterQuery.push({
+              groupCode,
+              objectCode,
+              fieldCode,
+              value: {
+                [Op.or]: filter[fieldCode].map(id => parseInt(id))
+              }
+            });
+          }
+        });
+
+        if (filterQuery.length > 0) {
+          const count = await models.indexed.count({
+            attributes: ['contentId'],
+            where: {
+              [Op.and]: filterQuery
+            },
+            group: 'contentId',
+            offset: perPage * (currentPage - 1),
+            limit: perPage
+          });
+          const rows = await models.indexed.findAll({
+            attributes: ['contentId'],
+            where: {
+              [Op.and]: filterQuery
+            },
+            group: 'contentId',
+            offset: perPage * (currentPage - 1),
+            limit: perPage
+          });
+          if (count === 0) {
+            return { count, rows };
+          }
+
+          const data = await models.content.findAll({
+            where: {
+              id: {
+                [Op.in]: rows.map(({ contentId }) => contentId)
+              }
+            }
+          });
+          return { count, rows: data };
+        }
+      }
+
+      return await models.content.findAndCountAll({
+        where: {
+          groupCode,
+          objectCode
+        },
+        offset: perPage * (currentPage - 1),
+        limit: perPage
+      });
+    })(filter);
+    //查询关联对象数据
     const referenceQuery = [];
     references
       .filter(({ type }) => type === 'outer')

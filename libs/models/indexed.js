@@ -7,9 +7,8 @@ module.exports = ({ DataTypes }) => {
       objectCode: {
         type: DataTypes.STRING
       },
-      fieldName: {
-        type: DataTypes.STRING,
-        comment: '数据取值路径'
+      fieldCode: {
+        type: DataTypes.STRING
       },
       value: {
         type: DataTypes.JSON
@@ -23,11 +22,11 @@ module.exports = ({ DataTypes }) => {
       indexed: [
         {
           name: 'indexed_unique_key',
-          fields: ['field_name', 'object_code', 'group_code', 'content_id']
+          fields: ['field_code', 'object_code', 'group_code', 'content_id']
         },
         {
           name: 'indexed_value_key',
-          fields: ['field_name', 'object_code', 'group_code', 'value']
+          fields: ['field_code', 'object_code', 'group_code', 'value']
         }
       ]
     }
