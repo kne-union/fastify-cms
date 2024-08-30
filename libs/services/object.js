@@ -1,20 +1,24 @@
 const fp = require('fastify-plugin');
-const get = require('lodash/get');
-const transform = require('lodash/transform');
 
 module.exports = fp(async (fastify, options) => {
   const { models, services } = fastify.cms;
-
-  const getList = async ({ groupCode, status }) => {
+  const { Op } = fastify.sequelize.Sequelize;
+  const getList = async ({ groupCode, status, filter = {} }) => {
     const queryFilter = {};
 
     if (Number.isInteger(status)) {
       queryFilter['status'] = status;
     }
+
+    if (filter['type']) {
+      queryFilter['type'] = filter['type'];
+    }
+
     return await models.object.findAll({
       where: Object.assign({}, queryFilter, {
         groupCode
-      })
+      }),
+      order: [['index', 'ASC']]
     });
   };
 
@@ -50,12 +54,15 @@ module.exports = fp(async (fastify, options) => {
       throw new Error('对象集合不存在');
     }
     const target = { groupCode };
-    ['name', 'code', 'description'].forEach(name => {
+    ['name', 'code', 'type', 'tag', 'description'].forEach(name => {
       if (info[name]) {
         target[name] = info[name];
       }
     });
-
+    target.index = await models.object.count({
+      where: { groupCode },
+      paranoid: false
+    });
     await models.object.create(target, other);
   };
 
@@ -66,7 +73,7 @@ module.exports = fp(async (fastify, options) => {
       throw new Error('对象不存在');
     }
 
-    ['name', 'description'].forEach(name => {
+    ['name', 'type', 'tag', 'description'].forEach(name => {
       if (info[name]) {
         object[name] = info[name];
       }
@@ -160,7 +167,78 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
-  const copy = async ({copyId, withContent, ...info }) => {
+  const moveUp = async ({ id }) => {
+    const object = await models.object.findByPk(id);
+
+    if (!object) {
+      throw new Error('对象不存在');
+    }
+
+    const prevObject = await models.object.findOne({
+      where: {
+        groupCode: object.groupCode,
+        index: {
+          [Op.lt]: object.index
+        }
+      },
+      order: [['index', 'DESC']]
+    });
+
+    if (!prevObject) {
+      throw new Error('无法继续上移');
+    }
+
+    const currentIndex = object.index;
+    object.index = prevObject.index;
+    prevObject.index = currentIndex;
+    const t = await fastify.sequelize.instance.transaction();
+    try {
+      await object.save({ transaction: t });
+      await prevObject.save({ transaction: t });
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
+  };
+
+  const moveDown = async ({ id }) => {
+    const object = await models.object.findByPk(id);
+
+    if (!object) {
+      throw new Error('对象不存在');
+    }
+
+    const nexObject = await models.object.findOne({
+      where: {
+        groupCode: object.groupCode,
+        index: {
+          [Op.gt]: object.index
+        }
+      },
+      order: [['index', 'ASC']]
+    });
+
+    if (!nexObject) {
+      throw new Error('无法继续下移');
+    }
+
+    const currentIndex = object.index;
+    object.index = nexObject.index;
+    nexObject.index = currentIndex;
+
+    const t = await fastify.sequelize.instance.transaction();
+    try {
+      await object.save({ transaction: t });
+      await nexObject.save({ transaction: t });
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
+  };
+
+  const copy = async ({ copyId, withContent, ...info }) => {
     /**
      * 1. 新建object
      * 2. 复制所有field
@@ -182,44 +260,60 @@ module.exports = fp(async (fastify, options) => {
         target[name] = info[name];
       }
     });
-    const {groupCode, code} = object;
+    const { groupCode, code } = object;
     const fields = await models.field.findAll({
-      where: {groupCode, objectCode: code}
+      where: { groupCode, objectCode: code }
     });
 
     const references = await models.reference.findAll({
-      where: {groupCode, originObjectCode: code}
+      where: { groupCode, originObjectCode: code }
     });
 
     try {
-      await Promise.all(
-        [
-          await models.object.create(target, { transaction: t }),
-          await models.field.bulkCreate(fields.map((item) => {
-            const field = {groupCode, objectCode: info.code};
+      await Promise.all([
+        await models.object.create(target, { transaction: t }),
+        await models.field.bulkCreate(
+          fields.map(item => {
+            const field = { groupCode, objectCode: info.code };
             ['name', 'code', 'description', 'isList', 'isBlock', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isIndexed'].forEach(name => {
               if (item[name]) {
                 field[name] = item[name];
               }
             });
             return field;
-          }), {transaction: t}),
-          await models.reference.bulkCreate(references.map((item) => {
-            const reference = {groupCode, originObjectCode: info.code};
+          }),
+          { transaction: t }
+        ),
+        await models.reference.bulkCreate(
+          references.map(item => {
+            const reference = { groupCode, originObjectCode: info.code };
             ['fieldCode', 'targetObjectCode', 'targetObjectFieldLabelCode', 'type'].forEach(name => {
               if (item[name]) {
                 reference[name] = item[name];
               }
             });
             return reference;
-          }), {transaction: t}),
-        ]
-      );
+          }),
+          { transaction: t }
+        )
+      ]);
     } catch (e) {
       await t.rollback();
       throw e;
     }
   };
 
-  fastify.cms.services.object = { getList, getDetailByCode, add, copy, save, close, open, remove, getMetaInfo };
+  fastify.cms.services.object = {
+    getList,
+    getDetailByCode,
+    add,
+    copy,
+    save,
+    close,
+    open,
+    remove,
+    getMetaInfo,
+    moveUp,
+    moveDown
+  };
 });
