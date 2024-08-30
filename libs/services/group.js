@@ -66,7 +66,7 @@ module.exports = fp(async (fastify, options) => {
         [
           await models.object.bulkCreate(objects.map((item) => {
             const object = {groupCode: info.code};
-            ['name', 'code', 'description'].forEach(name => {
+            ['name', 'code', 'description', 'tag', 'type'].forEach(name => {
               if (item[name]) {
                 object[name] = item[name];
               }

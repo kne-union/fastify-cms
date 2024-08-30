@@ -255,18 +255,26 @@ module.exports = fp(async (fastify, options) => {
       throw new Error('复制对象不存在');
     }
     const target = { groupCode: object.groupCode };
-    ['name', 'code', 'description'].forEach(name => {
+    ['name', 'code', 'type', 'tag', 'description'].forEach(name => {
       if (info[name]) {
         target[name] = info[name];
       }
     });
+    target.index = await models.object.count({
+      where: { groupCode: object.groupCode },
+      paranoid: false,
+      transaction: t
+    });
+
     const { groupCode, code } = object;
     const fields = await models.field.findAll({
-      where: { groupCode, objectCode: code }
+      where: { groupCode, objectCode: code },
+      transaction: t
     });
 
     const references = await models.reference.findAll({
-      where: { groupCode, originObjectCode: code }
+      where: { groupCode, originObjectCode: code },
+      transaction: t
     });
 
     try {
@@ -297,6 +305,7 @@ module.exports = fp(async (fastify, options) => {
           { transaction: t }
         )
       ]);
+      await t.commit();
     } catch (e) {
       await t.rollback();
       throw e;
