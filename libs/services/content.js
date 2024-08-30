@@ -25,7 +25,7 @@ module.exports = fp(async (fastify, options) => {
   };
 
   const add = async ({ data, groupCode, objectCode }) => {
-    const { object, fields } = await services.object.getMetaInfo({ groupCode, objectCode });
+    const { object, references, fields } = await services.object.getMetaInfo({ groupCode, objectCode });
     const indexedFields = fields.filter(item => item.isIndexed === true);
     //todo: 这里需要对数据进行验证
     const t = await fastify.sequelize.instance.transaction();
