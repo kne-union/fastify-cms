@@ -1,6 +1,6 @@
 {
   "name": "@kne/fastify-cms",
-  "version": "1.0.0-alpha.3",
+  "version": "1.0.0-alpha.4",
   "description": "内容管理",
   "main": "index.js",
   "scripts": {

@@ -84,6 +84,7 @@ module.exports = fp(async (fastify, options) => {
             type: { type: 'string' },
             tag: { type: 'string' },
             description: { type: 'string' },
+            isSingle: { type: 'boolean' },
             groupCode: { type: 'string' }
           }
         }
@@ -112,6 +113,7 @@ module.exports = fp(async (fastify, options) => {
             code: { type: 'string' },
             type: { type: 'string' },
             tag: { type: 'string' },
+            isSingle: { type: 'boolean' },
             description: { type: 'string' }
           }
         }
@@ -138,6 +140,7 @@ module.exports = fp(async (fastify, options) => {
             type: { type: 'string' },
             tag: { type: 'string' },
             name: { type: 'string' },
+            isSingle: { type: 'boolean' },
             description: { type: 'string' }
           }
         }
