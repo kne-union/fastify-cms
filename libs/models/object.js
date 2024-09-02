@@ -12,6 +12,25 @@ module.exports = ({ DataTypes }) => {
         comment: '名称',
         allowNull: false
       },
+      type: {
+        type: DataTypes.STRING,
+        defaultValue: 'outer',
+        comment: 'inner:内部对象，client不展示 outer:正常对象client展示'
+      },
+      isSingle: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: '该对象是否为单例模式'
+      },
+      index: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        comment: '排序索引'
+      },
+      tag: {
+        type: DataTypes.STRING,
+        comment: '对象分类，可以在某些业务中用于对象分类筛选条件'
+      },
       description: {
         type: DataTypes.TEXT,
         comment: '描述'

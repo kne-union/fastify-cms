@@ -3,7 +3,7 @@
   "info": {
     "title": "内容发布管理",
     "description": "内容发布管理",
-    "version": "1.0.0-alpha.2"
+    "version": "1.0.0-alpha.3"
   },
   "components": {
     "schemas": {}
@@ -702,6 +702,9 @@
                   "copyGroupCode": {
                     "type": "string"
                   },
+                  "withContent": {
+                    "type": "boolean"
+                  },
                   "code": {
                     "type": "string"
                   },
@@ -1029,10 +1032,66 @@
                   "code": {
                     "type": "string"
                   },
+                  "type": {
+                    "type": "string"
+                  },
+                  "tag": {
+                    "type": "string"
+                  },
                   "description": {
                     "type": "string"
                   },
                   "groupCode": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/object/copy": {
+      "post": {
+        "summary": "添加对象",
+        "tags": [
+          "对象模型"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "copyId"
+                ],
+                "properties": {
+                  "copyId": {
+                    "type": "number"
+                  },
+                  "withContent": {
+                    "type": "boolean"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "code": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "tag": {
+                    "type": "string"
+                  },
+                  "description": {
                     "type": "string"
                   }
                 }
@@ -1066,6 +1125,12 @@
                 "properties": {
                   "id": {
                     "type": "number"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "tag": {
+                    "type": "string"
                   },
                   "name": {
                     "type": "string"
@@ -1151,6 +1216,68 @@
     "/api/v1/cms/object/open": {
       "post": {
         "summary": "开启对象",
+        "tags": [
+          "对象模型"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/object/moveUp": {
+      "post": {
+        "summary": "对象上移",
+        "tags": [
+          "对象模型"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Default Response"
+          }
+        }
+      }
+    },
+    "/api/v1/cms/object/moveDown": {
+      "post": {
+        "summary": "对象下移",
         "tags": [
           "对象模型"
         ],

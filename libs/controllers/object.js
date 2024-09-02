@@ -81,7 +81,10 @@ module.exports = fp(async (fastify, options) => {
           properties: {
             name: { type: 'string' },
             code: { type: 'string' },
+            type: { type: 'string' },
+            tag: { type: 'string' },
             description: { type: 'string' },
+            isSingle: { type: 'boolean' },
             groupCode: { type: 'string' }
           }
         }
@@ -108,6 +111,9 @@ module.exports = fp(async (fastify, options) => {
             withContent: { type: 'boolean' },
             name: { type: 'string' },
             code: { type: 'string' },
+            type: { type: 'string' },
+            tag: { type: 'string' },
+            isSingle: { type: 'boolean' },
             description: { type: 'string' }
           }
         }
@@ -131,7 +137,10 @@ module.exports = fp(async (fastify, options) => {
           required: ['id', 'name'],
           properties: {
             id: { type: 'number' },
+            type: { type: 'string' },
+            tag: { type: 'string' },
             name: { type: 'string' },
+            isSingle: { type: 'boolean' },
             description: { type: 'string' }
           }
         }
@@ -205,6 +214,50 @@ module.exports = fp(async (fastify, options) => {
     },
     async request => {
       await services.object.open(request.body);
+      return {};
+    }
+  );
+
+  fastify.post(
+    `${options.prefix}/object/moveUp`,
+    {
+      onRequest: options.createAuthenticate('object:write'),
+      schema: {
+        tags: ['对象模型'],
+        summary: '对象上移',
+        body: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'number' }
+          }
+        }
+      }
+    },
+    async request => {
+      await services.object.moveUp(request.body);
+      return {};
+    }
+  );
+
+  fastify.post(
+    `${options.prefix}/object/moveDown`,
+    {
+      onRequest: options.createAuthenticate('object:write'),
+      schema: {
+        tags: ['对象模型'],
+        summary: '对象下移',
+        body: {
+          type: 'object',
+          required: ['id'],
+          properties: {
+            id: { type: 'number' }
+          }
+        }
+      }
+    },
+    async request => {
+      await services.object.moveDown(request.body);
       return {};
     }
   );
