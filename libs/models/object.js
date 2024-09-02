@@ -17,6 +17,11 @@ module.exports = ({ DataTypes }) => {
         defaultValue: 'outer',
         comment: 'inner:内部对象，client不展示 outer:正常对象client展示'
       },
+      isSingle: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+        comment: '该对象是否为单例模式'
+      },
       index: {
         type: DataTypes.INTEGER,
         allowNull: false,

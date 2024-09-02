@@ -24,20 +24,21 @@ module.exports = fp(async (fastify, options) => {
     );
   };
 
-  const add = async ({ data, groupCode, objectCode }) => {
-    const { object, references, fields } = await services.object.getMetaInfo({ groupCode, objectCode });
-    const indexedFields = fields.filter(item => item.isIndexed === true);
+  const rebuildIndexed = async ({ data, groupCode, objectCode }, saveData) => {
+    const { fields } = await services.object.getMetaInfo({ groupCode, objectCode });
     //todo: 这里需要对数据进行验证
+    const indexedFields = fields.filter(item => item.isIndexed === true);
     const t = await fastify.sequelize.instance.transaction();
     try {
-      const content = await models.content.create(
-        {
-          data,
+      const { id } = await saveData({ t });
+      await models.indexed.destroy({
+        where: {
+          contentId: id,
           groupCode,
           objectCode
         },
-        { transaction: t }
-      );
+        transaction: t
+      });
       if (indexedFields.length > 0) {
         await models.indexed.bulkCreate(
           indexedFields
@@ -50,7 +51,7 @@ module.exports = fp(async (fastify, options) => {
                 objectCode,
                 fieldCode: item.code,
                 value: get(data, item.fieldName),
-                contentId: content.id
+                contentId: id
               };
             }),
           { transaction: t }
@@ -63,61 +64,54 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
+  const add = async ({ data, groupCode, objectCode }) => {
+    await rebuildIndexed({ data, groupCode, objectCode }, async ({ t }) => {
+      return await models.content.create(
+        {
+          data,
+          groupCode,
+          objectCode
+        },
+        { transaction: t }
+      );
+    });
+  };
+
   const save = async ({ data }) => {
     const content = await models.content.findByPk(data.id);
     if (!content) {
       throw new Error('内容数据不存在');
     }
     const { groupCode, objectCode } = content;
-    const { object, fields } = await services.object.getMetaInfo({ groupCode, objectCode });
-    const indexedFields = fields.filter(item => item.isIndexed === true);
 
-    //todo: 这里需要对数据进行验证
-    const t = await fastify.sequelize.instance.transaction();
-    try {
-      const targetData = Object.assign({}, content.data);
-      fields
-        .filter(item => {
-          return get(data, item.fieldName) !== void 0;
-        })
-        .forEach(item => {
-          set(targetData, item.fieldName, get(data, item.fieldName));
-        });
-      content.data = targetData;
-      await content.save({ transaction: t });
+    const { fields } = await services.object.getMetaInfo({ groupCode, objectCode });
 
-      //重建字段索引
-      await models.indexed.destroy({
-        where: {
-          contentId: content.id,
-          groupCode,
-          objectCode
-        },
-        transaction: t
+    const targetData = Object.assign({}, content.data);
+    fields
+      .filter(item => {
+        return get(data, item.fieldName) !== void 0;
+      })
+      .forEach(item => {
+        set(targetData, item.fieldName, get(data, item.fieldName));
       });
+    content.data = targetData;
+    await rebuildIndexed({ data: targetData, groupCode, objectCode }, async ({ t }) => {
+      await content.save({ transaction: t });
+      return content;
+    });
+  };
 
-      if (indexedFields.length > 0) {
-        await models.indexed.bulkCreate(
-          indexedFields
-            .filter(item => {
-              return get(data, item.fieldName) !== void 0;
-            })
-            .map(item => {
-              return {
-                groupCode,
-                objectCode,
-                fieldCode: item.code,
-                value: get(data, item.fieldName),
-                contentId: content.id
-              };
-            }),
-          { transaction: t }
-        );
+  const saveSingle = async ({ data, groupCode, objectCode }) => {
+    let content = await models.content.findOne({
+      where: {
+        groupCode,
+        objectCode
       }
-      await t.commit();
-    } catch (e) {
-      await t.rollback();
-      throw e;
+    });
+    if (content) {
+      await save({ data: Object.assign({}, data, { id: content.id }) });
+    } else {
+      await add({ data, groupCode, objectCode });
     }
   };
 
@@ -305,6 +299,28 @@ module.exports = fp(async (fastify, options) => {
     };
   };
 
+  const getDetailSingle = async ({ groupCode, objectCode }) => {
+    const { object, fields, references } = await services.object.getMetaInfo({ groupCode, objectCode });
+    const content = await models.content.findOne({
+      where: { groupCode, objectCode }
+    });
+    if (!content) {
+      return {
+        object,
+        fields,
+        references,
+        data: null
+      };
+    }
+
+    return {
+      object,
+      fields,
+      references,
+      data: content.data
+    };
+  };
+
   const remove = async ({ id }) => {
     const content = await models.content.findByPk(id);
 
@@ -342,5 +358,5 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
-  fastify.cms.services.content = { contentIsEmpty, add, save, getList, getDetail, remove };
+  fastify.cms.services.content = { contentIsEmpty, add, save, saveSingle, getDetailSingle, getList, getDetail, remove };
 });

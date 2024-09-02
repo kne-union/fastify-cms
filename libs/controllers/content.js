@@ -48,6 +48,52 @@ module.exports = fp(async (fastify, options) => {
     }
   );
 
+  fastify.get(
+    `${options.prefix}/content/getDetailSingle`,
+    {
+      onRequest: options.createAuthenticate('content:read'),
+      schema: {
+        tags: ['对象内容'],
+        summary: '获取单例对象内容详情',
+        query: {
+          type: 'object',
+          required: ['objectCode', 'groupCode'],
+          properties: {
+            groupCode: { type: 'string' },
+            objectCode: { type: 'string' }
+          }
+        }
+      }
+    },
+    async request => {
+      return await services.content.getDetailSingle(request.query);
+    }
+  );
+
+  fastify.post(
+    `${options.prefix}/content/saveSingle`,
+    {
+      onRequest: options.createAuthenticate('content:write'),
+      schema: {
+        tags: ['对象内容'],
+        summary: '保存单例对象内容',
+        body: {
+          type: 'object',
+          required: ['data', 'objectCode', 'groupCode'],
+          properties: {
+            data: { type: 'object' },
+            groupCode: { type: 'string' },
+            objectCode: { type: 'string' }
+          }
+        }
+      }
+    },
+    async request => {
+      await services.content.saveSingle(request.body);
+      return {};
+    }
+  );
+
   fastify.post(
     `${options.prefix}/content/add`,
     {

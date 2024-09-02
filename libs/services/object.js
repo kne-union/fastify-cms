@@ -1,5 +1,5 @@
 const fp = require('fastify-plugin');
-
+const isNil = require('lodash/isNil');
 module.exports = fp(async (fastify, options) => {
   const { models, services } = fastify.cms;
   const { Op } = fastify.sequelize.Sequelize;
@@ -54,8 +54,8 @@ module.exports = fp(async (fastify, options) => {
       throw new Error('对象集合不存在');
     }
     const target = { groupCode };
-    ['name', 'code', 'type', 'tag', 'description'].forEach(name => {
-      if (info[name]) {
+    ['name', 'code', 'type', 'tag', 'description', 'isSingle'].forEach(name => {
+      if (!isNil(info[name])) {
         target[name] = info[name];
       }
     });
@@ -73,8 +73,8 @@ module.exports = fp(async (fastify, options) => {
       throw new Error('对象不存在');
     }
 
-    ['name', 'type', 'tag', 'description'].forEach(name => {
-      if (info[name]) {
+    ['name', 'type', 'tag', 'description', 'isSingle'].forEach(name => {
+      if (!isNil(info[name])) {
         object[name] = info[name];
       }
     });
