@@ -66,7 +66,7 @@ module.exports = fp(async (fastify, options) => {
         [
           await models.object.bulkCreate(objects.map((item) => {
             const object = {groupCode: info.code};
-            ['name', 'code', 'description', 'tag', 'type'].forEach(name => {
+            ['name', 'code', 'type', 'isSingle', 'index', 'tag', 'description', 'status'].forEach(name => {
               if (item[name]) {
                 object[name] = item[name];
               }
@@ -75,7 +75,7 @@ module.exports = fp(async (fastify, options) => {
           }), {transaction: t}),
           await models.field.bulkCreate(fields.map((item) => {
             const field = {groupCode: info.code};
-            ['name', 'code', 'description', 'isList', 'isBlock', 'objectCode', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isIndexed'].forEach(name => {
+            ['name', 'code', 'description', 'isList', 'isBlock', 'objectCode', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isHidden', 'isIndexed', 'status'].forEach(name => {
               if (item[name]) {
                 field[name] = item[name];
               }

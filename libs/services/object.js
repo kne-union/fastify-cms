@@ -256,7 +256,7 @@ module.exports = fp(async (fastify, options) => {
       throw new Error('复制对象不存在');
     }
     const target = { groupCode: object.groupCode };
-    ['name', 'code', 'type', 'tag', 'description'].forEach(name => {
+    ['name', 'code', 'type', 'isSingle', 'index', 'tag', 'description', 'status'].forEach(name => {
       if (info[name]) {
         target[name] = info[name];
       }
@@ -284,7 +284,7 @@ module.exports = fp(async (fastify, options) => {
         await models.field.bulkCreate(
           fields.map(item => {
             const field = { groupCode, objectCode: info.code };
-            ['name', 'code', 'description', 'isList', 'isBlock', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isIndexed'].forEach(name => {
+            ['name', 'code', 'description', 'isList', 'isBlock', 'objectCode', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isHidden', 'isIndexed', 'status'].forEach(name => {
               if (item[name]) {
                 field[name] = item[name];
               }
