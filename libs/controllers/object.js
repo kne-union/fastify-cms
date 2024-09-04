@@ -261,4 +261,114 @@ module.exports = fp(async (fastify, options) => {
       return {};
     }
   );
+
+  fastify.post(
+    `${options.prefix}/object/export`,
+    {
+      onRequest: options.createAuthenticate('object:write'),
+      schema: {
+        tags: ['对象导出'],
+        summary: '对象导出',
+        body: {
+          type: 'object',
+          required: ['objectIds', 'groupCode'],
+          properties: {
+            objectIds: { type: 'array', items: { type: 'string' } },
+            groupCode: { type: 'string' },
+            withContent: { type: 'boolean' },
+          }
+        },
+        /*response: {
+          200: {
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      objects: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            code: { type: 'string' },
+                            name: { type: 'string' },
+                            type: { type: 'string' },
+                            isSingle: { type: 'boolean' },
+                            index: { type: 'number' },
+                            tag: { type: 'string' },
+                            groupCode: { type: 'string' },
+                            description: { type: 'string' },
+                            status: { type: 'number' },
+                            createdAt: { type: 'string' },
+                            updatedAt: { type: 'string' },
+                            deletedAt: { type: 'string' }
+                          },
+                        }
+                      },
+                      fields: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            code: { type: 'string' },
+                            objectCode: { type: 'string' },
+                            groupCode: { type: 'string' },
+                            fieldName: { type: 'string' },
+                            name: { type: 'string' },
+                            rule: { type: 'string' },
+                            index: { type: 'number' },
+                            description: { type: 'string' },
+                            type: { type: 'string' },
+                            isList: { type: 'boolean' },
+                            maxLength: { type: 'number' },
+                            minLength: { type: 'number' },
+                            formInputType: { type: 'string' },
+                            formInputProps: { type: 'string' },
+                            isBlock: { type: 'boolean' },
+                            isHidden: { type: 'boolean' },
+                            isIndexed: { type: 'boolean' },
+                            status: { type: 'number' },
+                            createdAt: { type: 'string' },
+                            updatedAt: { type: 'string' },
+                            deletedAt: { type: 'string' }
+                          },
+                          /!*not: {
+                            anyOf: [
+                              { required: ['createdAt'] },
+                              { required: ['updatedAt'] },
+                              { required: ['deletedAt'] },
+                            ]
+                          }*!/
+                        }
+                      },
+                      references: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            groupCode: { type: 'string' },
+                            fieldCode: { type: 'string' },
+                            originObjectCode: { type: 'string' },
+                            targetObjectCode: { type: 'string' },
+                            targetObjectFieldLabelCode: { type: 'string' },
+                            type: { type: 'string' },
+                          }
+                        }
+                      },
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }*/
+      }
+    },
+    async (request, reply) => {
+      const data = await services.object.exportObject(request.body);
+      return reply.send(data);
+    }
+  );
 });

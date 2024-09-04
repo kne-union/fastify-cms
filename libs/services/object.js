@@ -1,4 +1,5 @@
 const fp = require('fastify-plugin');
+const fs = require('fs');
 const isNil = require('lodash/isNil');
 module.exports = fp(async (fastify, options) => {
   const { models, services } = fastify.cms;
@@ -312,6 +313,49 @@ module.exports = fp(async (fastify, options) => {
     }
   };
 
+  const exportObject = async ({ groupCode, objectIds, withContent }) => {
+    /**
+     * 1. 查询所有的Object
+     * 2. 查询Object下所有field
+     * 3. 查询Object下field所有相关reference
+     * */
+    const exportData = {};
+    const t = await fastify.sequelize.instance.transaction();
+    try {
+      const objects = await models.object.findAll({
+        where: {
+          groupCode,
+          id: {[Op.in]: objectIds}
+        },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        transaction: t
+      });
+      if (!objects?.length) {
+        throw new Error('导出对象不存在');
+      }
+      exportData.objects = objects;
+      const objectsCode = objects.map(item => item.code);
+      const fields = await models.field.findAll({
+        where: { groupCode, objectCode: {[Op.in]: objectsCode} },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        transaction: t
+      });
+      exportData.fields = fields;
+
+      const references = await models.reference.findAll({
+        where: { groupCode, originObjectCode: {[Op.in]: objectsCode} },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        transaction: t
+      });
+      exportData.references = references;
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
+    return exportData;
+  };
+
   fastify.cms.services.object = {
     getList,
     getDetailByCode,
@@ -323,6 +367,7 @@ module.exports = fp(async (fastify, options) => {
     remove,
     getMetaInfo,
     moveUp,
-    moveDown
+    moveDown,
+    exportObject
   };
 });
