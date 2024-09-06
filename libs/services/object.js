@@ -327,7 +327,7 @@ module.exports = fp(async (fastify, options) => {
           groupCode,
           id: {[Op.in]: objectIds}
         },
-        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt', 'id'] },
         transaction: t
       });
       if (!objects?.length) {
@@ -337,14 +337,14 @@ module.exports = fp(async (fastify, options) => {
       const objectsCode = objects.map(item => item.code);
       const fields = await models.field.findAll({
         where: { groupCode, objectCode: {[Op.in]: objectsCode} },
-        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt', 'id'] },
         transaction: t
       });
       exportData.fields = fields;
 
       const references = await models.reference.findAll({
         where: { groupCode, originObjectCode: {[Op.in]: objectsCode} },
-        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt', 'id'] },
         transaction: t
       });
       exportData.references = references;
@@ -354,6 +354,18 @@ module.exports = fp(async (fastify, options) => {
       throw e;
     }
     return exportData;
+  };
+
+  const importObject = async ({ file, withContent }) => {
+    const {value: groupCode} = file.fields?.groupCode
+    const data = JSON.parse(await file.toBuffer());
+    /**
+     * 1. 查询 Object 是否已经存在
+     * 2. 存入 Object
+     * 3. 存入 Object 的 field 和 reference
+     * */
+    // console.log('file====================\n', data);
+    return data;
   };
 
   fastify.cms.services.object = {
@@ -368,6 +380,7 @@ module.exports = fp(async (fastify, options) => {
     getMetaInfo,
     moveUp,
     moveDown,
-    exportObject
+    exportObject,
+    importObject,
   };
 });
