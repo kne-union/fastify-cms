@@ -284,7 +284,7 @@ module.exports = fp(async (fastify, options) => {
         await models.field.bulkCreate(
           fields.map(item => {
             const field = { groupCode, objectCode: info.code };
-            ['name', 'code', 'description', 'isList', 'isBlock', 'objectCode', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isHidden', 'isIndexed', 'status'].forEach(name => {
+            ['name', 'code', 'description', 'isList', 'isBlock', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isHidden', 'isIndexed', 'status'].forEach(name => {
               if (item[name]) {
                 field[name] = item[name];
               }
@@ -327,7 +327,7 @@ module.exports = fp(async (fastify, options) => {
           groupCode,
           id: {[Op.in]: objectIds}
         },
-        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt', 'id'] },
         transaction: t
       });
       if (!objects?.length) {
@@ -337,14 +337,14 @@ module.exports = fp(async (fastify, options) => {
       const objectsCode = objects.map(item => item.code);
       const fields = await models.field.findAll({
         where: { groupCode, objectCode: {[Op.in]: objectsCode} },
-        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt', 'id'] },
         transaction: t
       });
       exportData.fields = fields;
 
       const references = await models.reference.findAll({
         where: { groupCode, originObjectCode: {[Op.in]: objectsCode} },
-        attributes: { exclude: ['createdAt','updatedAt','deletedAt'] },
+        attributes: { exclude: ['createdAt','updatedAt','deletedAt', 'id'] },
         transaction: t
       });
       exportData.references = references;
@@ -354,6 +354,94 @@ module.exports = fp(async (fastify, options) => {
       throw e;
     }
     return exportData;
+  };
+
+  const importObject = async ({ file }) => {
+    const {value: groupCode} = file.fields?.groupCode
+    const data = JSON.parse(await file.toBuffer());
+    /**
+     * 1. 查询 Object 是否已经存在
+     * 2. 存入 Object
+     * 3. 存入 Object 的 field 和 reference
+     * */
+    const t = await fastify.sequelize.instance.transaction();
+    try {
+      const objectCodes = (data?.objects || []).map(item => item.code);
+      const objects = await models.object.findAll({
+        where: {
+          groupCode,
+          code: {[Op.in]: objectCodes}
+        },
+        transaction: t
+      });
+      const fieldCodes = (data?.fields || []).map(item => item.code);
+      const fieldObjectCodes = (data?.fields || []).map(item => item.objectCode);
+      const fields = await models.field.findAll({
+        where: {
+          groupCode,
+          code: {[Op.in]: fieldCodes},
+          objectCode: {[Op.in]: fieldObjectCodes},
+        },
+        transaction: t
+      });
+      const referenceCodes = (data?.references || []).map(item => item.fieldCode);
+      const referenceObjectCodes = (data?.references || []).map(item => item.targetObjectCode);
+      const references = await models.reference.findAll({
+        where: {
+          groupCode,
+          fieldCode: {[Op.in]: referenceCodes},
+          targetObjectCode: {[Op.in]: referenceObjectCodes},
+        },
+        transaction: t
+      });
+      if (objects?.length || fields?.length || references?.length) {
+        throw new Error('导入数据已存在于当前对象集合');
+      } else {
+        await Promise.all([
+          await models.object.bulkCreate(
+            (data?.objects || []).map(item => {
+              const target = { groupCode };
+              ['name', 'code', 'type', 'isSingle', 'index', 'tag', 'description', 'status'].forEach(name => {
+                if (item[name]) {
+                  target[name] = item[name];
+                }
+              });
+              return target;
+            }),
+            { transaction: t }
+          ),
+          await models.field.bulkCreate(
+            (data?.fields || []).map(item => {
+              const field = { groupCode };
+              ['name', 'code', 'description', 'isList', 'isBlock', 'objectCode', 'fieldName', 'rule', 'index', 'type', 'maxLength', 'minLength', 'formInputType', 'formInputProps', 'isHidden', 'isIndexed', 'status'].forEach(name => {
+                if (item[name]) {
+                  field[name] = item[name];
+                }
+              });
+              return field;
+            }),
+            { transaction: t }
+          ),
+          await models.reference.bulkCreate(
+            (data?.references || []).map(item => {
+              const reference = { groupCode };
+              ['fieldCode', 'originObjectCode', 'targetObjectCode', 'targetObjectFieldLabelCode', 'type'].forEach(name => {
+                if (item[name]) {
+                  reference[name] = item[name];
+                }
+              });
+              return reference;
+            }),
+            { transaction: t }
+          )
+        ]);
+      }
+      await t.commit();
+    } catch (e) {
+      await t.rollback();
+      throw e;
+    }
+    return data;
   };
 
   fastify.cms.services.object = {
@@ -368,6 +456,7 @@ module.exports = fp(async (fastify, options) => {
     getMetaInfo,
     moveUp,
     moveDown,
-    exportObject
+    exportObject,
+    importObject,
   };
 });

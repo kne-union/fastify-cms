@@ -38,6 +38,7 @@
   },
   "homepage": "https://github.com/kne-union/fastify-cms#readme",
   "dependencies": {
+    "@fastify/multipart": "^8.2.0",
     "@kne/fastify-namespace": "^0.1.2",
     "fastify-plugin": "^4.5.1",
     "lodash": "^4.17.21"

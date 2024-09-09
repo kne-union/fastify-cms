@@ -19,6 +19,7 @@ module.exports = fp(
       options
     );
 
+    fastify.register(require('@fastify/multipart'), options.multipart);
     fastify.register(require('@kne/fastify-namespace'), {
       options,
       name: 'cms',
